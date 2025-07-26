@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter媒体抓取器</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fab fa-twitter"></i> Twitter媒体抓取器</h1>
+            <p>输入Twitter链接，批量抓取媒体内容</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <h2>输入链接</h2>
+                <div class="input-container">
+                    <textarea id="tweet-links" placeholder="在此粘贴Twitter链接，每行一个..."></textarea>
+                    <div class="button-group">
+                        <button id="fetch-button" class="primary-button"><i class="fas fa-download"></i> 开始抓取</button>
+                        <button id="clear-button" class="secondary-button"><i class="fas fa-trash"></i> 清空</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="format-section">
+                <h2>文件命名格式</h2>
+                <div class="format-container">
+                    <input type="text" id="format-pattern" value="{name}_{time}_@{id}" placeholder="例如: {name}_{time}_@{id}">
+                    <div class="format-help">
+                        <p>可用变量: {id}作者ID, {name}作者昵称, {context}推文文本, {time}发表时间, {link}推文链接</p>
+                        <p>高级用法: {变量名}[起始:结束] 截取字符范围，如 {context}[0:10]</p>
+                        <p><s>正则匹配: {"输出格式":r/正则表达式/, 变量名} 如 {"Tag:$1":r/^.*(#.*? ).*$/, context}</s>(好吧我是打算做这个功能的但好像有bug不知道为什么)</p>
+                        <p>自定义时间: {time:"yyyy-mm-dd"} 支持 yyyy年 mm月 dd日 hh时 MM分 ss秒</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="results-section">
+                <h2>抓取结果 <span id="result-count">(0)</span></h2>
+                <div class="results-container" id="results-container">
+                    <!-- 结果将在这里动态生成 -->
+                    <div class="empty-state">
+                        <i class="fas fa-cloud-download-alt"></i>
+                        <p>输入链接并点击"开始抓取"按钮</p>
+                    </div>
+                </div>
+                <div class="download-all-container">
+                    <div class="select-all-container">
+                        <input type="checkbox" id="select-all" checked>
+                        <label for="select-all">全选</label>
+                    </div>
+                    <button id="download-all" class="primary-button" disabled><i class="fas fa-file-archive"></i> 下载选中项 (ZIP)</button>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>© 2023 Twitter媒体抓取器 | 仅供学习和个人使用</p>
+        </footer>
+    </div>
+
+    <!-- 加载提示 -->
+    <div id="loading-overlay" class="hidden">
+        <div class="loader"></div>
+        <p>正在抓取媒体内容，请稍候...</p>
+    </div>
+
+    <!-- 模板 -->
+    <template id="media-item-template">
+        <div class="media-item">
+            <div class="media-checkbox">
+                <input type="checkbox" class="media-select" checked>
+            </div>
+            <div class="media-preview">
+                <!-- 预览图将在这里插入 -->
+            </div>
+            <div class="media-info">
+                <div class="media-author">
+                    <img class="author-avatar" src="" alt="作者头像">
+                    <div class="author-details">
+                        <span class="author-name"></span>
+                        <span class="author-id"></span>
+                    </div>
+                </div>
+                <p class="media-text"></p>
+                <div class="media-meta">
+                    <span class="media-time"></span>
+                    <span class="media-type"></span>
+                </div>
+                <div class="media-actions">
+                    <button class="download-button"><i class="fas fa-download"></i> 下载</button>
+                    <a class="view-original" href="" target="_blank"><i class="fas fa-external-link-alt"></i> 查看原文</a>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

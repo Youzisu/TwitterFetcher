@@ -1,0 +1,19 @@
+{
+  "name": "twitter-media-fetcher",
+  "version": "1.0.0",
+  "description": "一个用于抓取Twitter推文媒体内容的网页应用",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "twitter",
+    "media",
+    "downloader",
+    "video",
+    "image"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}
