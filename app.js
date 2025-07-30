@@ -117,9 +117,22 @@ async function handleDownloadAllClick() {
         
         // 生成并下载zip文件
         const zipBlob = await zip.generateAsync({type: 'blob'});
-        saveAs(zipBlob, `twitter_media_${new Date().toISOString().slice(0, 10)}.zip`);
-        
-        showNotification(`已打包下载 ${selectedIndices.length} 个媒体文件`, 'success');
+        try {
+            saveAs(zipBlob, `twitter_media_${new Date().toISOString().slice(0, 10)}.zip`);
+            showNotification(`已打包下载 ${selectedIndices.length} 个媒体文件`, 'success');
+        } catch (e) {
+            console.warn('FileSaver.js 打包下载失败，尝试使用 fallback 方案:', e);
+            // Fallback: 创建一个临时的 Blob URL 并使用 <a> 标签下载
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `twitter_media_${new Date().toISOString().slice(0, 10)}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url); // 释放URL对象
+            showNotification(`已尝试打包下载 ${selectedIndices.length} 个媒体文件，请检查浏览器下载`, 'info');
+        }
     } catch (error) {
         console.error('打包下载过程中出错:', error);
         showNotification('打包下载过程中出错: ' + error.message, 'error');
@@ -296,9 +309,20 @@ async function downloadMedia(media) {
         const response = await fetch(media.url);
         const blob = await response.blob();
         
-        saveAs(blob, fileName);
-        
-        showNotification('媒体文件已下载', 'success');
+        try {
+            saveAs(blob, fileName);
+            showNotification('媒体文件已下载', 'success');
+        } catch (e) {
+            console.warn('FileSaver.js 下载失败，尝试使用 fallback 方案:', e);
+            // Fallback: 使用 <a> 标签的 download 属性
+            const a = document.createElement('a');
+            a.href = media.url;
+            a.download = fileName; // 设置文件名
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showNotification('媒体文件已尝试下载，请检查浏览器下载', 'info');
+        }
     } catch (error) {
         console.error('下载媒体文件时出错:', error);
         showNotification('下载媒体文件时出错: ' + error.message, 'error');
