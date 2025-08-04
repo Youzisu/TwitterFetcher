@@ -348,7 +348,9 @@ function formatFileName(pattern, media) {
                 case 'name': value = media.authorName || ''; break;
                 case 'context': value = media.text || ''; break;
                 case 'time': value = media.time || ''; break;
-                case 'link': value = media.link || ''; break;
+                case 'link': value = media.link.match(tweetLinkRegex)?.[2] || ''; break;
+                case 'status': value = media.link.match(tweetLinkRegex)?.[2] || ''; break;
+                case 'link:full': value = media.link || ''; break;
                 default: value = '';
             }
             
@@ -387,7 +389,9 @@ function formatFileName(pattern, media) {
             case 'name': value = media.authorName || ''; break;
             case 'context': value = media.text || ''; break;
             case 'time': value = formatDate(media.time) || ''; break;
-            case 'link': value = media.link || ''; break;
+            case 'link': value = media.link.match(tweetLinkRegex)?.[2] || ''; break;
+            case 'status': value = media.link.match(tweetLinkRegex)?.[2] || ''; break;
+            case 'link:full': value = media.link || ''; break;
             default: value = '';
         }
         
@@ -402,7 +406,9 @@ function formatFileName(pattern, media) {
         .replace(/\{name\}/g, media.authorName || 'unknown')
         .replace(/\{context\}/g, (media.text || '').substring(0, 30).replace(/[\/:*?"<>|]/g, '_'))
         .replace(/\{time\}/g, formatDate(media.time) || 'unknown')
-        .replace(/\{link\}/g, media.link || 'unknown');
+        .replace(/\{link:full\}/g, media.link || 'unknown')
+        .replace(/\{link\}/g, media.link.match(tweetLinkRegex)?.[2] || 'unknown') // 提取推文ID作为link
+        .replace(/\{status\}/g, media.link.match(tweetLinkRegex)?.[2] || 'unknown'); // status与link相同，都是推文ID
     
     // 移除Windows文件名中不允许的字符
     return result.replace(/[\/:*?"<>|]/g, '_');

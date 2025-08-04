@@ -24,7 +24,7 @@
 - `{name}` - 作者昵称
 - `{context}` - 推文文本（限制为前30个字符）
 - `{time}` - 发表时间
-- `{link}` - 推文链接ID
+- `{link}` | `{status}` - 推文链接ID(https://twitter.com/{id}/status/{status}?s=19中的{status}，输入link:full也可获取完整链接)
 
 默认格式为：`{name}_{time}_@{id}`
 
