@@ -9,33 +9,14 @@ const elements = {
     clearButton: document.getElementById('clear-button'),
     formatPattern: document.getElementById('format-pattern'),
     resultsContainer: document.getElementById('results-container'),
-    resultCountSpan: document.getElementById('result-count'),
-    downloadAllButton: document.getElementById('download-all-button'),
+    resultCount: document.getElementById('result-count'),
+    downloadAllButton: document.getElementById('download-all'),
     loadingOverlay: document.getElementById('loading-overlay'),
-    loadingText: document.getElementById('loading-text'),
-    notificationContainer: document.getElementById('notification-container'),
-    progressContainer: document.getElementById('progress-container'),
+    mediaItemTemplate: document.getElementById('media-item-template'),
     progressBar: document.getElementById('progress-bar'),
-    progressText: document.getElementById('progress-text')
+    progressText: document.getElementById('progress-text'),
+    failedLinksContainer: document.getElementById('failed-links-container')
 };
-
-// 显示/隐藏加载提示
-function showLoading(show, text = '加载中...') {
-    if (show) {
-        elements.loadingOverlay.style.display = 'flex';
-        elements.loadingText.textContent = text;
-    } else {
-        elements.loadingOverlay.style.display = 'none';
-    }
-}
-
-// 更新进度条
-function updateProgressBar(completed, total, currentLink = '') {
-    const percentage = total > 0 ? (completed / total) * 100 : 0;
-    elements.progressBar.style.width = `${percentage}%`;
-    elements.progressText.textContent = `已完成: ${completed}/${total} (${percentage.toFixed(1)}%) ${currentLink ? `- ${currentLink}` : ''}`;
-    elements.progressContainer.style.display = total > 0 ? 'block' : 'none';
-}
 
 // 事件监听器
 document.addEventListener('DOMContentLoaded', () => {
@@ -54,72 +35,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 处理抓取按钮点击
 async function handleFetchButtonClick() {
-    const tweetLinks = elements.tweetLinks.value.split('\n').map(link => link.trim()).filter(link => link !== '');
-    if (tweetLinks.length === 0) {
-        showNotification('请输入Twitter链接', 'warning');
+    const links = elements.tweetLinks.value.trim().split('\n').filter(link => link.trim() !== '');
+    
+    if (links.length === 0) {
+        showNotification('请输入至少一个Twitter链接', 'warning');
         return;
     }
-
+    
+    // 显示加载提示
+    showLoading(true);
     elements.fetchButton.disabled = true;
     elements.clearButton.disabled = true;
-    elements.resultsContainer.innerHTML = ''; // 清空之前的抓取结果
-    fetchedMedia = []; // 清空已抓取媒体数组
-    elements.resultCountSpan.textContent = '(0)';
-    showLoading(true, '正在抓取...'); // 在抓取开始时显示加载提示
+    elements.downloadAllButton.disabled = true;
+    elements.progressBar.style.width = '0%';
+    elements.progressText.textContent = '0%';
+    elements.failedLinksContainer.innerHTML = ''; // 清空失败链接
 
-    let completedFetches = 0;
-    const totalFetches = tweetLinks.length;
-    const failedLinks = [];
-
-    updateProgressBar(0, totalFetches); // 初始化进度条
+    let successfulFetches = 0;
+    let failedLinks = [];
 
     try {
-        for (let i = 0; i < totalFetches; i++) {
-            const link = tweetLinks[i];
+        // 清空之前的结果
+        fetchedMedia = [];
+        updateResultsUI();
+
+        // 处理每个链接
+        for (let i = 0; i < links.length; i++) {
+            const link = links[i].trim();
+            const progress = Math.round(((i + 1) / links.length) * 100);
+            elements.progressBar.style.width = `${progress}%`;
+            elements.progressText.textContent = `${progress}%`;
+
             try {
-                updateProgressBar(completedFetches, totalFetches, `正在抓取: ${link.substring(0, 40)}...`);
-                const media = await fetchTweetMedia(link);
-                if (media) {
-                    fetchedMedia.push(...media);
+                if (tweetLinkRegex.test(link)) {
+                    await fetchTweetMedia(link);
+                    successfulFetches++;
+                } else {
+                    console.warn('无效的Twitter链接:', link);
+                    failedLinks.push({ link: link, reason: '无效链接格式' });
                 }
             } catch (error) {
-                console.error(`抓取链接失败: ${link}`, error);
-                failedLinks.push(link);
-                showNotification(`抓取链接失败: ${link.substring(0, 50)}... ${error.message}`, 'error');
-            } finally {
-                completedFetches++;
-                updateProgressBar(completedFetches, totalFetches); // 更新进度
+                console.error('抓取推文媒体时出错:', error, link);
+                failedLinks.push({ link: link, reason: error.message });
             }
         }
 
+        // 更新UI
+        updateResultsUI();
+        elements.downloadAllButton.disabled = fetchedMedia.length === 0;
+
+        // 显示结果统计
+        showNotification(`成功抓取 ${successfulFetches} 个媒体文件，${failedLinks.length} 个失败`, 'success');
+
+        // 显示失败链接
         if (failedLinks.length > 0) {
-            const failedLinksHtml = failedLinks.map(link => `<span class="failed-link">${link}</span>`).join('<br>');
-            showNotification(`部分链接抓取失败:<br>${failedLinksHtml}`, 'error', true);
-            elements.tweetLinks.value = tweetLinks.map(link => {
-                if (failedLinks.includes(link)) {
-                    return `[失败] ${link}`;
-                } else {
-                    return link;
-                } 
-            }).join('\n');
-        }
-
-        updateResultsUI(fetchedMedia);
-        elements.resultCountSpan.textContent = `(${fetchedMedia.length})`;
-
-        if (fetchedMedia.length > 0) {
-            elements.downloadAllButton.style.display = 'block';
+            elements.failedLinksContainer.classList.add('has-content');
+            const failedHeader = document.createElement('h3');
+            failedHeader.textContent = '抓取失败的链接:';
+            elements.failedLinksContainer.appendChild(failedHeader);
+            failedLinks.forEach(item => {
+                const p = document.createElement('p');
+                p.className = 'failed-link';
+                p.innerHTML = `<a href="${item.link}" target="_blank">${item.link}</a> - ${item.reason}`;
+                elements.failedLinksContainer.appendChild(p);
+            });
         } else {
-            elements.downloadAllButton.style.display = 'none';
+            elements.failedLinksContainer.classList.remove('has-content');
         }
 
-        showNotification(`抓取完成！成功抓取 ${fetchedMedia.length} 个媒体文件。`, 'success');
-
+    } catch (error) {
+        console.error('抓取过程中出错:', error);
+        showNotification('抓取过程中出错: ' + error.message, 'error');
     } finally {
-        showLoading(false); // 在抓取结束时隐藏加载提示
+        // 隐藏加载提示
+        showLoading(false);
         elements.fetchButton.disabled = false;
         elements.clearButton.disabled = false;
-        updateProgressBar(0, 0); // 隐藏进度条
+        elements.downloadAllButton.disabled = fetchedMedia.length === 0;
     }
 }
 
@@ -129,6 +121,10 @@ function handleClearButtonClick() {
     fetchedMedia = [];
     updateResultsUI();
     elements.downloadAllButton.disabled = true;
+    elements.progressBar.style.width = '0%';
+    elements.progressText.textContent = '0%';
+    elements.failedLinksContainer.innerHTML = '';
+    elements.failedLinksContainer.classList.remove('has-content');
 }
 
 // 处理下载选中项按钮点击
@@ -194,7 +190,7 @@ async function handleDownloadAllClick() {
 }
 
 // 抓取推文媒体
-async function fetchTweetMedia(tweetUrl, retries = 3, delay = 1000) {
+async function fetchTweetMedia(tweetUrl) {
     try {
         // 从URL中提取推文ID
         const match = tweetUrl.match(tweetLinkRegex);
@@ -208,14 +204,7 @@ async function fetchTweetMedia(tweetUrl, retries = 3, delay = 1000) {
         const apiUrl = `https://api.fxtwitter.com/${username}/status/${tweetId}`;
         
         const response = await fetch(apiUrl);
-        if (!response.ok) {
-            if (response.status === 404 && retries > 0) {
-                console.warn(`API请求失败: ${response.status}，正在重试... (剩余 ${retries} 次)`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return fetchTweetMedia(tweetUrl, retries - 1, delay * 2); // 指数退避
-            }
-            throw new Error(`API请求失败: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`API请求失败: ${response.status}`);
         
         const data = await response.json();
         
@@ -515,24 +504,6 @@ function formatCustomDate(dateString, format) {
 }
 
 // 显示/隐藏加载提示
-function showLoading(show, text = '加载中...') {
-    if (show) {
-        elements.loadingOverlay.style.display = 'flex';
-        elements.loadingText.textContent = text;
-    } else {
-        elements.loadingOverlay.style.display = 'none';
-    }
-}
-
-// 更新进度条
-function updateProgressBar(completed, total, currentLink = '') {
-    const percentage = total > 0 ? (completed / total) * 100 : 0;
-    elements.progressBar.style.width = `${percentage}%`;
-    elements.progressText.textContent = `已完成: ${completed}/${total} (${percentage.toFixed(1)}%) ${currentLink ? `- ${currentLink}` : ''}`;
-    elements.progressContainer.style.display = total > 0 ? 'block' : 'none';
-}
-
-// 显示/隐藏加载提示
 function showLoading(show) {
     elements.loadingOverlay.classList.toggle('hidden', !show);
 }
@@ -617,38 +588,3 @@ style.textContent = `
 }
 `;
 document.head.appendChild(style);
-
-if (failedLinks.length > 0) {
-    const failedLinksHtml = failedLinks.map(link => `<span class="failed-link">${link}</span>`).join('<br>');
-    showNotification(`部分链接抓取失败:<br>${failedLinksHtml}`, 'error', true);
-    // 可以在这里更新tweetLinks textarea，高亮显示失败的链接
-    // 或者在updateResultsUI中处理
-    // 可以在这里更新tweetLinks textarea，高亮显示失败的链接
-    // 或者在updateResultsUI中处理
-    elements.tweetLinks.value = tweetLinks.map(link => {
-        if (failedLinks.includes(link)) {
-            return `[失败] ${link}`;
-        } else {
-            return link;
-        }
-    }).join('\n');
-}
-
-updateResultsUI();
-elements.downloadAllButton.disabled = fetchedMedia.length === 0;
-
-// 显示结果统计
-showNotification(`成功抓取 ${fetchedMedia.length} 个媒体文件`, 'success');
-try {
-    showLoading(true, '正在下载...');
-    await downloadAllMedia(fetchedMedia);
-    showNotification('所有媒体文件下载完成', 'success');
-} catch (error) {
-    console.error('下载过程中出错:', error);
-    showNotification('下载过程中出错: ' + error.message, 'error');
-} finally {
-    // 隐藏加载提示
-    showLoading(false);
-    elements.fetchButton.disabled = false;
-    elements.clearButton.disabled = false;
-}
