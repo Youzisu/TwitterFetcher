@@ -26,7 +26,7 @@
 - `{time}` - 发表时间
 - `{link}` | `{status}` - 推文链接ID(https://twitter.com/{id}/status/{status}?s=19中的{status}，输入link:full也可获取完整链接)
 
-默认格式为：`{name}_{time}_@{id}`
+默认格式为：`{name}(@{id})_{time:"yyyy-mm-dd"}_{link}`
 
 ## 技术说明
 

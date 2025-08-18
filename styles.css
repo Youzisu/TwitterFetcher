@@ -409,3 +409,37 @@ footer {
         font-size: 2rem;
     }
 }
+
+/* 进度条样式 */
+.progress-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    margin-top: 15px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.progress-bar {
+    width: 0%;
+    height: 25px;
+    background-color: var(--primary-color);
+    border-radius: 5px;
+    text-align: center;
+    line-height: 25px;
+    color: white;
+    transition: width 0.4s ease-in-out;
+}
+
+.progress-text {
+    text-align: center;
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: var(--secondary-color);
+}
+
+/* 失败链接高亮 */
+.failed-link {
+    color: var(--danger-color);
+    font-weight: bold;
+}
